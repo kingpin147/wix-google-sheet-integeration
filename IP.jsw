@@ -1,0 +1,21 @@
+import {fetch} from "wix-fetch";
+export async function getClientIP() {
+  try {
+    const response = await fetch('https://extreme-ip-lookup.com/json/', {
+      method: 'get'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch IP info');
+    }
+
+    const json = await response.json();
+    const ipAddress = json.query;
+
+    console.log('Client IP:', ipAddress);
+    return ipAddress;
+  } catch (error) {
+    console.error('Error fetching IP address:', error);
+    return null;
+  }
+}

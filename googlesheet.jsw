@@ -1,0 +1,52 @@
+import { getSecret } from 'wix-secrets-backend';
+import jwt from 'jsonwebtoken';
+
+export async function appendToGooglesheet(rowData) {
+  const key = JSON.parse(await getSecret('googleServiceAccount'));
+
+  const now = Math.floor(Date.now() / 1000);
+  const jwtToken = jwt.sign(
+    {
+      iss: key.client_email,
+      scope: 'https://www.googleapis.com/auth/spreadsheets',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600
+    },
+    key.private_key,
+    { algorithm: 'RS256' }
+  );
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwtToken}`
+  });
+
+  const tokenData = await tokenRes.json();
+  const accessToken = tokenData.access_token;
+
+  const spreadsheetId = '1R8ANe-oZr0QgzOnRocahpNPPsJtMzu3FllxvcAa2YuY';
+  const range = 'Sheet1!A1:F1'; // Update as needed
+
+  const values = [[
+    rowData.firstName,
+    rowData.lastName,
+    rowData.company,
+    rowData.linkedin,
+    rowData.clientIP || 'N/A',
+    new Date().toISOString()
+  ]];
+
+  const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ values })
+  });
+
+  const sheetData = await sheetRes.json();
+  return sheetData;
+}
