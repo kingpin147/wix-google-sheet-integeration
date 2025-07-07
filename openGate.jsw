@@ -1,0 +1,16 @@
+// backend/location.jsw
+import { fetch } from 'wix-fetch';
+
+export async function getLocationDetails(lat, lon) {
+  const apiKey = 'Apikey';
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=${apiKey}`;
+
+  const response = await fetch(url, { method: 'get' });
+
+  if (!response.ok) {
+    throw new Error(`OpenCage API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.results[0].formatted;
+}
